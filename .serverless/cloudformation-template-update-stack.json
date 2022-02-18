@@ -1,0 +1,750 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "The AWS CloudFormation template for this Serverless application",
+  "Resources": {
+    "ServerlessDeploymentBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "ServerlessDeploymentBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "ServerlessDeploymentBucket"
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "s3:*",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":s3:::",
+                      {
+                        "Ref": "ServerlessDeploymentBucket"
+                      },
+                      "/*"
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":s3:::",
+                      {
+                        "Ref": "ServerlessDeploymentBucket"
+                      }
+                    ]
+                  ]
+                }
+              ],
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": false
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "FetchAllUsersLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/appsync-intro-dev-fetchAllUsers"
+      }
+    },
+    "FetchUserLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/appsync-intro-dev-fetchUser"
+      }
+    },
+    "AddUserLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/appsync-intro-dev-addUser"
+      }
+    },
+    "IamRoleLambdaExecution": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": {
+              "Fn::Join": [
+                "-",
+                [
+                  "appsync-intro",
+                  "dev",
+                  "lambda"
+                ]
+              ]
+            },
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:CreateLogGroup"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/appsync-intro-dev*:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/appsync-intro-dev*:*:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:PutItem",
+                    "dynamodb:GetItem",
+                    "dynamodb:Scan"
+                  ],
+                  "Resource": "arn:aws:dynamodb:us-east-1:*:table/users"
+                }
+              ]
+            }
+          }
+        ],
+        "Path": "/",
+        "RoleName": {
+          "Fn::Join": [
+            "-",
+            [
+              "appsync-intro",
+              "dev",
+              {
+                "Ref": "AWS::Region"
+              },
+              "lambdaRole"
+            ]
+          ]
+        }
+      }
+    },
+    "FetchAllUsersLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/appsync-intro/dev/1644565708523-2022-02-11T07:48:28.523Z/appsync-intro.zip"
+        },
+        "Handler": "functions/fetchAllUsers.handler",
+        "Runtime": "nodejs12.x",
+        "FunctionName": "appsync-intro-dev-fetchAllUsers",
+        "MemorySize": 1024,
+        "Timeout": 100,
+        "Environment": {
+          "Variables": {
+            "TABLE_NAME": {
+              "Ref": "UserTable"
+            }
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "FetchAllUsersLogGroup"
+      ]
+    },
+    "FetchUserLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/appsync-intro/dev/1644565708523-2022-02-11T07:48:28.523Z/appsync-intro.zip"
+        },
+        "Handler": "functions/fetchUser.handler",
+        "Runtime": "nodejs12.x",
+        "FunctionName": "appsync-intro-dev-fetchUser",
+        "MemorySize": 1024,
+        "Timeout": 100,
+        "Environment": {
+          "Variables": {
+            "TABLE_NAME": {
+              "Ref": "UserTable"
+            }
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "FetchUserLogGroup"
+      ]
+    },
+    "AddUserLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/appsync-intro/dev/1644565708523-2022-02-11T07:48:28.523Z/appsync-intro.zip"
+        },
+        "Handler": "functions/addUser.handler",
+        "Runtime": "nodejs12.x",
+        "FunctionName": "appsync-intro-dev-addUser",
+        "MemorySize": 1024,
+        "Timeout": 100,
+        "Environment": {
+          "Variables": {
+            "TABLE_NAME": {
+              "Ref": "UserTable"
+            }
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "AddUserLogGroup"
+      ]
+    },
+    "FetchAllUsersLambdaVersionrYYZuDGqDGqyhsrWh8CqP1ce9O1a3J1yQh7utIcOmI": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "FetchAllUsersLambdaFunction"
+        },
+        "CodeSha256": "X6UzDonTtTiWS3+MKC7mMdhAO4C+HPL3JTOI/Xp7ji8="
+      }
+    },
+    "FetchUserLambdaVersionl0XJYMH8anhacxHy5g05h1FLssLfbgHNWYwZyPiaI": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "FetchUserLambdaFunction"
+        },
+        "CodeSha256": "X6UzDonTtTiWS3+MKC7mMdhAO4C+HPL3JTOI/Xp7ji8="
+      }
+    },
+    "AddUserLambdaVersion6VA7f0Em0feghXa8Map5qJLThibK363fpX2c1uNEs": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "AddUserLambdaFunction"
+        },
+        "CodeSha256": "X6UzDonTtTiWS3+MKC7mMdhAO4C+HPL3JTOI/Xp7ji8="
+      }
+    },
+    "UserTable": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "KeySchema": [
+          {
+            "AttributeName": "email",
+            "KeyType": "HASH"
+          }
+        ],
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "email",
+            "AttributeType": "S"
+          }
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "TableName": "users"
+      }
+    },
+    "GraphQlApi": {
+      "Type": "AWS::AppSync::GraphQLApi",
+      "Properties": {
+        "Name": "appsync-trial",
+        "AuthenticationType": "API_KEY",
+        "AdditionalAuthenticationProviders": [],
+        "XrayEnabled": false
+      }
+    },
+    "GraphQlApiKeyDefault": {
+      "Type": "AWS::AppSync::ApiKey",
+      "Properties": {
+        "ApiId": {
+          "Fn::GetAtt": [
+            "GraphQlApi",
+            "ApiId"
+          ]
+        },
+        "Description": "Auto-generated api key",
+        "Expires": 1676098800
+      }
+    },
+    "GraphQlSchema": {
+      "Type": "AWS::AppSync::GraphQLSchema",
+      "Properties": {
+        "Definition": "type Mutation {\n  addUser(name: String!, email: String!, phoneNumber: String!): User\n}\n\ntype Query {\n  fetchAll(tableName: String!): [User]\n  fetchByKey(tableName: String!, key: String!, value: String!): User\n}\n\ntype Subscription {\n  userAdded: User!\n}\n\ntype User {\n  name: String\n  phoneNumber: String\n  email: String\n}\n\nschema {\n  query: Query\n  mutation: Mutation\n  subscription: Subscription\n}",
+        "ApiId": {
+          "Fn::GetAtt": [
+            "GraphQlApi",
+            "ApiId"
+          ]
+        }
+      }
+    },
+    "GraphQlDsaddUserFunctionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "appsync.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "GraphQlDsaddUserFunctionPolicy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Action": [
+                    "lambda:invokeFunction"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "AddUserLambdaFunction",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::Join": [
+                        ":",
+                        [
+                          {
+                            "Fn::GetAtt": [
+                              "AddUserLambdaFunction",
+                              "Arn"
+                            ]
+                          },
+                          "*"
+                        ]
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "GraphQlDsfetchAllFunctionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "appsync.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "GraphQlDsfetchAllFunctionPolicy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Action": [
+                    "lambda:invokeFunction"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "FetchAllUsersLambdaFunction",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::Join": [
+                        ":",
+                        [
+                          {
+                            "Fn::GetAtt": [
+                              "FetchAllUsersLambdaFunction",
+                              "Arn"
+                            ]
+                          },
+                          "*"
+                        ]
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "GraphQlDsfetchUserFunctionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "appsync.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "GraphQlDsfetchUserFunctionPolicy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Action": [
+                    "lambda:invokeFunction"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "FetchUserLambdaFunction",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::Join": [
+                        ":",
+                        [
+                          {
+                            "Fn::GetAtt": [
+                              "FetchUserLambdaFunction",
+                              "Arn"
+                            ]
+                          },
+                          "*"
+                        ]
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "GraphQlDsaddUserFunction": {
+      "Type": "AWS::AppSync::DataSource",
+      "Properties": {
+        "ApiId": {
+          "Fn::GetAtt": [
+            "GraphQlApi",
+            "ApiId"
+          ]
+        },
+        "Name": "addUserFunction",
+        "Type": "AWS_LAMBDA",
+        "ServiceRoleArn": {
+          "Fn::GetAtt": [
+            "GraphQlDsaddUserFunctionRole",
+            "Arn"
+          ]
+        },
+        "LambdaConfig": {
+          "LambdaFunctionArn": {
+            "Fn::GetAtt": [
+              "AddUserLambdaFunction",
+              "Arn"
+            ]
+          }
+        }
+      }
+    },
+    "GraphQlDsfetchAllFunction": {
+      "Type": "AWS::AppSync::DataSource",
+      "Properties": {
+        "ApiId": {
+          "Fn::GetAtt": [
+            "GraphQlApi",
+            "ApiId"
+          ]
+        },
+        "Name": "fetchAllFunction",
+        "Type": "AWS_LAMBDA",
+        "ServiceRoleArn": {
+          "Fn::GetAtt": [
+            "GraphQlDsfetchAllFunctionRole",
+            "Arn"
+          ]
+        },
+        "LambdaConfig": {
+          "LambdaFunctionArn": {
+            "Fn::GetAtt": [
+              "FetchAllUsersLambdaFunction",
+              "Arn"
+            ]
+          }
+        }
+      }
+    },
+    "GraphQlDsfetchUserFunction": {
+      "Type": "AWS::AppSync::DataSource",
+      "Properties": {
+        "ApiId": {
+          "Fn::GetAtt": [
+            "GraphQlApi",
+            "ApiId"
+          ]
+        },
+        "Name": "fetchUserFunction",
+        "Type": "AWS_LAMBDA",
+        "ServiceRoleArn": {
+          "Fn::GetAtt": [
+            "GraphQlDsfetchUserFunctionRole",
+            "Arn"
+          ]
+        },
+        "LambdaConfig": {
+          "LambdaFunctionArn": {
+            "Fn::GetAtt": [
+              "FetchUserLambdaFunction",
+              "Arn"
+            ]
+          }
+        }
+      }
+    },
+    "GraphQlResolverMutationaddUser": {
+      "Type": "AWS::AppSync::Resolver",
+      "DependsOn": "GraphQlSchema",
+      "Properties": {
+        "ApiId": {
+          "Fn::GetAtt": [
+            "GraphQlApi",
+            "ApiId"
+          ]
+        },
+        "TypeName": "Mutation",
+        "FieldName": "addUser",
+        "Kind": "UNIT",
+        "DataSourceName": {
+          "Fn::GetAtt": [
+            "GraphQlDsaddUserFunction",
+            "Name"
+          ]
+        }
+      }
+    },
+    "GraphQlResolverQueryfetchAll": {
+      "Type": "AWS::AppSync::Resolver",
+      "DependsOn": "GraphQlSchema",
+      "Properties": {
+        "ApiId": {
+          "Fn::GetAtt": [
+            "GraphQlApi",
+            "ApiId"
+          ]
+        },
+        "TypeName": "Query",
+        "FieldName": "fetchAll",
+        "Kind": "UNIT",
+        "DataSourceName": {
+          "Fn::GetAtt": [
+            "GraphQlDsfetchAllFunction",
+            "Name"
+          ]
+        }
+      }
+    },
+    "GraphQlResolverQueryfetchByKey": {
+      "Type": "AWS::AppSync::Resolver",
+      "DependsOn": "GraphQlSchema",
+      "Properties": {
+        "ApiId": {
+          "Fn::GetAtt": [
+            "GraphQlApi",
+            "ApiId"
+          ]
+        },
+        "TypeName": "Query",
+        "FieldName": "fetchByKey",
+        "Kind": "UNIT",
+        "DataSourceName": {
+          "Fn::GetAtt": [
+            "GraphQlDsfetchUserFunction",
+            "Name"
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "ServerlessDeploymentBucketName": {
+      "Value": {
+        "Ref": "ServerlessDeploymentBucket"
+      },
+      "Export": {
+        "Name": "sls-appsync-intro-dev-ServerlessDeploymentBucketName"
+      }
+    },
+    "FetchAllUsersLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "FetchAllUsersLambdaVersionrYYZuDGqDGqyhsrWh8CqP1ce9O1a3J1yQh7utIcOmI"
+      },
+      "Export": {
+        "Name": "sls-appsync-intro-dev-FetchAllUsersLambdaFunctionQualifiedArn"
+      }
+    },
+    "FetchUserLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "FetchUserLambdaVersionl0XJYMH8anhacxHy5g05h1FLssLfbgHNWYwZyPiaI"
+      },
+      "Export": {
+        "Name": "sls-appsync-intro-dev-FetchUserLambdaFunctionQualifiedArn"
+      }
+    },
+    "AddUserLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "AddUserLambdaVersion6VA7f0Em0feghXa8Map5qJLThibK363fpX2c1uNEs"
+      },
+      "Export": {
+        "Name": "sls-appsync-intro-dev-AddUserLambdaFunctionQualifiedArn"
+      }
+    },
+    "GraphQlApiKeyDefault": {
+      "Value": {
+        "Fn::GetAtt": [
+          "GraphQlApiKeyDefault",
+          "ApiKey"
+        ]
+      }
+    },
+    "GraphQlApiId": {
+      "Value": {
+        "Fn::GetAtt": [
+          "GraphQlApi",
+          "ApiId"
+        ]
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-GraphQlApiId"
+        }
+      }
+    },
+    "GraphQlApiUrl": {
+      "Value": {
+        "Fn::GetAtt": [
+          "GraphQlApi",
+          "GraphQLUrl"
+        ]
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-GraphQlApiUrl"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+type Mutation {
+  addUser(name: String!, email: String!, phoneNumber: String!): User
+}
+
+type Query {
+  fetchAll(tableName: String!): [User]
+  fetchByKey(tableName: String!, key: String!, value: String!): User
+}
+
+type Subscription {
+  userAdded: User!
+}
+
+type User {
+  name: String
+  phoneNumber: String
+  email: String
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}

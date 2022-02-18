@@ -1,0 +1,42 @@
+"User type having name phone Number and email"
+type User {
+  "name of the user`s account"
+  name: String
+  "phone Number of the user`s account"
+  phoneNumber: String
+  "email of the user`s account"
+  email: String
+}
+type Query {
+  "fetch All users from the given tablename"
+  fetchAll(
+    "table  name from which the users  needs to be fetches"
+    tableName: String!
+  ): [User]
+
+  """
+  fetch users from the given tablename  with key and value
+  """
+  fetchByKey(
+    "tableName is the tablename from which the data needs to be  fetched"
+    tableName: String!
+    "key is the key for which the value needs to be fetched"
+    key: String!
+    "value is the value for which the key needs to be fetched"
+    value: String!
+  ): User
+}
+type Mutation {
+  "create a new user"
+  addUser(name: String!, email: String!, phoneNumber: String!): User
+}
+type Subscription {
+  "subscribe to new users"
+  userAdded: User!
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}

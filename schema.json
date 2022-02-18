@@ -1,0 +1,105 @@
+﻿{
+    "type": {
+        "User": {
+            "name": {
+                "type": "String",
+                "array": false,
+                "required": false
+            },
+            "phoneNumber": {
+                "type": "String",
+                "array": false,
+                "required": false
+            },
+            "email": {
+                "type": "String",
+                "array": false,
+                "required": false
+            }
+        },
+        "Query": {
+            "fetchAll": {
+                "args": {
+                    "tableName": {
+                        "type": "String",
+                        "array": false,
+                        "required": true
+                    }
+                },
+                "type": "User",
+                "array": true,
+                "required": false
+            },
+            "fetchByKey": {
+                "args": {
+                    "tableName": {
+                        "type": "String",
+                        "array": false,
+                        "required": true
+                    },
+                    ",key": {
+                        "type": "String",
+                        "array": false,
+                        "required": true
+                    },
+                    ",value": {
+                        "type": "String",
+                        "array": false,
+                        "required": true
+                    }
+                },
+                "type": "User",
+                "array": false,
+                "required": false
+            }
+        },
+        "Mutation": {
+            "addUser": {
+                "args": {
+                    "name": {
+                        "type": "String",
+                        "array": false,
+                        "required": true
+                    },
+                    ",email": {
+                        "type": "String",
+                        "array": false,
+                        "required": true
+                    },
+                    ",phoneNumber": {
+                        "type": "String",
+                        "array": false,
+                        "required": true
+                    }
+                },
+                "type": "User",
+                "array": false,
+                "required": false
+            }
+        },
+        "Subscription": {
+            "userAdded": {
+                "type": "User",
+                "array": false,
+                "required": true
+            }
+        }
+    },
+    "schema": {
+        "query": {
+            "type": "Query",
+            "array": false,
+            "required": false
+        },
+        "mutation": {
+            "type": "Mutation",
+            "array": false,
+            "required": false
+        },
+        "subscription": {
+            "type": "Subscription",
+            "array": false,
+            "required": false
+        }
+    }
+}
